@@ -12,6 +12,7 @@ from shapely.geometry import shape
 
 import unweaver
 
+# TODO: put in top-level __init__, as it has global effects?
 if shapely.speedups.available:
     shapely.speedups.enable()
 
