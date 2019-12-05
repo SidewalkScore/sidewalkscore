@@ -17,7 +17,7 @@ if shapely.speedups.available:
     shapely.speedups.enable()
 
 
-def sidewalkscore(networks, street_edge, street_cost_function):
+def sidewalkscore(networks, street_edge, street_cost_function, interpolate=0.5):
     # conn = networks["pedestrian"]["G"].sqlitegraph.conn
     # indices = list(conn.execute("SELECT * FROM sqlite_master WHERE type = 'index'"))
     # for index in indices:
@@ -29,7 +29,9 @@ def sidewalkscore(networks, street_edge, street_cost_function):
     else:
         json_geometry_st = street_edge["_geometry"]
     geometry_st = shape(json_geometry_st)
-    midpoint = geometry_st.interpolate(0.5, normalized=True)
+    # TODO: ensure interpolation happens geodetically - currently introduces errors
+    # as it's done in wgs84
+    midpoint = geometry_st.interpolate(interpolate, normalized=True)
     # Get the associated sidewalks, if applicable
     sidewalk_ids = []
     # FIXME: Why would sw_left exist but not pkey_left?
