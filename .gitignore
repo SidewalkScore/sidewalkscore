@@ -1,0 +1,5 @@
+# editors
+*.swp
+
+# misc
+.DS_Store

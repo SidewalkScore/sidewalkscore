@@ -1,0 +1,9 @@
+# bytecode
+*.pyc
+__pycache__
+
+# Virtual environment
+venv
+
+# Test data
+tests
