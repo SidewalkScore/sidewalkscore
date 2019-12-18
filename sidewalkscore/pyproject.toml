@@ -8,8 +8,8 @@ license = "apache-2.0"
 [tool.poetry.dependencies]
 python = "^3.6"
 shapely = "^1.6"
-entwiner = {git = "https://github.com/nbolten/entwiner.git", rev="2e7a194"}
-unweaver = {git = "https://github.com/nbolten/unweaver.git", rev="a7c1b6c"}
+entwiner = {git = "https://github.com/nbolten/entwiner.git", rev="4cacee4"}
+unweaver = {git = "https://github.com/nbolten/unweaver.git", rev="0f10383"}
 
 [tool.poetry.dev-dependencies]
 

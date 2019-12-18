@@ -2,9 +2,10 @@
 import os
 
 import click
+import fiona
 
 import entwiner
-from unweaver.build import build_graph
+from unweaver.build import build_graph, get_layers_paths
 from unweaver.parsers import parse_profiles
 from unweaver.server import run_app
 from unweaver.weight import precalculate_weights
@@ -31,10 +32,22 @@ def build(directory, changes_sign):
     street_directory = os.path.join(directory, "street")
 
     click.echo("Building street network...")
-    build_graph(street_directory, changes_sign=changes_sign)
+    click.echo("Estimating street feature count...")
+    n_streets = 0
+    for path in get_layers_paths(street_directory):
+        with fiona.open(path) as c:
+            n_streets += len(c)
+    with click.progressbar(length=n_streets, label="Importing edges") as bar:
+        build_graph(street_directory, changes_sign=changes_sign, counter=bar)
 
     click.echo("Building pedestrian network...")
-    build_graph(pedestrian_directory, changes_sign=changes_sign)
+    click.echo("Estimating pedestrian feature count...")
+    n_pedestrian = 0
+    for path in get_layers_paths(street_directory):
+        with fiona.open(path) as c:
+            n_pedestrian += len(c)
+    with click.progressbar(length=n_pedestrian, label="Importing edges") as bar:
+        build_graph(pedestrian_directory, changes_sign=changes_sign, counter=bar)
 
     click.echo("Done.")
 

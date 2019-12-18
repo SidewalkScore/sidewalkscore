@@ -17,17 +17,71 @@ if shapely.speedups.available:
     shapely.speedups.enable()
 
 
-def sidewalkscore(networks, street_edge, street_cost_function, interpolate=0.5):
-    # conn = networks["pedestrian"]["G"].sqlitegraph.conn
-    # indices = list(conn.execute("SELECT * FROM sqlite_master WHERE type = 'index'"))
-    # for index in indices:
-    #     print(index)
-    # Get the midpoint
+def street_to_starts(networks, street_edge, interpolate=0.5):
+    G_street = networks["street"]["G"]
+    G_ped = networks["pedestrian"]["G"]
+
+    # Get the associated sidewalks, if applicable
+    sidewalk_ids = []
+
+    # FIXME: Why would sw_left exist but not pkey_left?
+    if "sw_left" in street_edge and street_edge["pkey_left"] is not None:
+        sidewalk_ids.append(street_edge["pkey_left"])
+    if "sw_right" in street_edge and street_edge["pkey_right"] is not None:
+        sidewalk_ids.append(street_edge["pkey_right"])
+
+    if not sidewalk_ids:
+        return None
+
     # FIXME: json.loads required for entwiner graph, but not networkx?
     if type(street_edge) == "dict":
         json_geometry_st = json.loads(street_edge["_geometry"])
     else:
         json_geometry_st = street_edge["_geometry"]
+    geometry_st = shape(json_geometry_st)
+    # TODO: ensure interpolation happens geodetically - currently introduces errors
+    # as it's done in wgs84
+    point_along = geometry_st.interpolate(interpolate, normalized=True)
+
+    street_candidates = unweaver.network_queries.dwithin.candidates_dwithin(
+      G_street, point_along.x, point_along.y, 4, is_destination=False, dwithin=5e-4
+    )
+
+    street_candidate = unweaver.algorithms.shortest_path._choose_candidate(street_candidates, street_cost_function)
+    if street_candidate is None:
+        return None
+
+    to_retrieve = set([int(sw_id) for sw_id in sidewalk_ids])
+
+    # FIXME: formalize strategy (or strategies) for associating sidewalks with streets.
+    sidewalk_candidates = []
+    near_edges = G_Ped.edges_dwithin(point_along.x, point_along.y, distance=5e-4, sort=True)
+    near = list(near_edges)
+    for edge in near:
+        # FIXME: hard-coded, prevents use of other datasets
+        if edge["_layer"] == "sidewalks":
+            if edge["pkey"] in to_retrieve:
+                sidewalks.append(edge)
+                to_retrieve.remove(edge["pkey"])
+
+    return {
+        "street": street_candidate,
+        "sidewalks": sidewalk_candidates,
+    }
+
+
+def sidewalkscore(networks, street_edge, interpolate=0.5):
+    # FIXME: standardize expectation over profile combinations. Is it all-by-all
+    # comparisons between ped and street? Need a strategy for aligning pedestrian
+    # profiles with street profiles. For now, assumes only a single street profile
+    G_ped = networks["pedestrian"]["G"]
+    street_profile = networks["street"]["profiles"][0]
+    # TODO: use precalculated weights
+    street_cost_function = street_profile["cost_function"]()
+
+    # Get the midpoint
+    # FIXME: json.loads required for entwiner graph, but not networkx?
+    json_geometry_st = json.loads(street_edge["_geometry"])
     geometry_st = shape(json_geometry_st)
     # TODO: ensure interpolation happens geodetically - currently introduces errors
     # as it's done in wgs84
@@ -54,7 +108,7 @@ def sidewalkscore(networks, street_edge, street_cost_function, interpolate=0.5):
 
     to_retrieve = set([int(sw_id) for sw_id in sidewalk_ids])
     sidewalks = []
-    near_edges = unweaver.network_queries.dwithin.edges_dwithin(networks["pedestrian"]["G"], midpoint.x, midpoint.y, distance=5e-4, sort=True)
+    near_edges = G_ped.edges_dwithin(midpoint.x, midpoint.y, distance=5e-4, sort=True)
     near = list(near_edges)
     for edge in near:
         # FIXME: hard-coded, prevents use of other datasets
@@ -67,7 +121,7 @@ def sidewalkscore(networks, street_edge, street_cost_function, interpolate=0.5):
     sw_distances = {profile["name"]: [] for profile in networks["pedestrian"]["profiles"]}
     sw_candidates_list = []
     for sidewalk in sidewalks:
-        sw_geometry = sidewalk["_geometry"]
+        sw_geometry = shape(json.loads(sidewalk["_geometry"]))
         sw_midpoint = sw_geometry.interpolate(sw_geometry.project(midpoint))
         sw_candidates = list(unweaver.network_queries.dwithin.candidates_dwithin(networks["pedestrian"]["G"], sw_midpoint.x, sw_midpoint.y, 1, is_destination=False, dwithin=5e-4))
         sw_candidates_list.append(sw_candidates)
@@ -116,6 +170,9 @@ def sidewalkscore(networks, street_edge, street_cost_function, interpolate=0.5):
             # SidewalkScore is normalized by 2 to account for the fact that we
             # asked for distances on up to 2 sidewalks.
             final_scores[name] = total_distance / 2 / st_total_distance
+
+    # TODO: save and return walksheds as well
+
     return final_scores
 
 def sidewalkscore_batch(pedestrian_db_directory, street_db_directory, out_file, counter=None):
@@ -124,10 +181,12 @@ def sidewalkscore_batch(pedestrian_db_directory, street_db_directory, out_file, 
     for network_type, directory in zip(["pedestrian", "street"], [pedestrian_db_directory, street_db_directory]):
         G = unweaver.graph.get_graph(directory)
 
-        G.sqlitegraph = G.sqlitegraph.to_in_memory()
-        sqlitegraph = G.sqlitegraph
-        G = nx.DiGraph(G)
-        G.sqlitegraph = sqlitegraph
+        G = G.to_in_memory()
+
+        # G.sqlitegraph = G.sqlitegraph.to_in_memory()
+        # sqlitegraph = G.sqlitegraph
+        # G = nx.DiGraph(G)
+        # G.sqlitegraph = sqlitegraph
 
         profiles = unweaver.parsers.parse_profiles(directory)
         networks[network_type] = {
@@ -135,17 +194,10 @@ def sidewalkscore_batch(pedestrian_db_directory, street_db_directory, out_file, 
             "profiles": profiles,
         }
 
-    # FIXME: standardize expectation over profile combinations. Is it all-by-all
-    # comparisons between ped and street? Need a strategy for aligning pedestrian
-    # profiles with street profiles. For now, assumes only a single street profile
-    street_profile = networks["street"]["profiles"][0]
-    # TODO: use precalculated weights
-    street_cost_function = street_profile["cost_function"]()
-
     features = []
     for i, (u, v, street) in enumerate(networks["street"]["G"].edges(data=True)):
     # for i, (u, v, street) in enumerate(networks["street"]["G"].iter_edges()):
-        sidewalkscores = sidewalkscore(networks, street, street_cost_function)
+        sidewalkscores = sidewalkscore(networks, street)
         # json_geometry_st = json.loads(street["_geometry"])
         json_geometry_st = street["_geometry"]
         features.append({
@@ -160,6 +212,7 @@ def sidewalkscore_batch(pedestrian_db_directory, street_db_directory, out_file, 
         #     raise Exception()
 
     # TODO: incrementally build sidewalkscore GPKG in temp file, copy over on completion.
+    # TODO: write to network database(!)
     schema = {
         "geometry": "LineString",
         "properties": OrderedDict([
@@ -172,3 +225,17 @@ def sidewalkscore_batch(pedestrian_db_directory, street_db_directory, out_file, 
     with fiona.open(out_file, "w", driver="GPKG", crs=crs, schema=schema) as c:
         for feature in features:
             c.write(feature)
+
+
+def sidewalkscore_from_lonlat(lon, lat, networks, dwithin=5e-4):
+    G_street = networks["street"]["G"]
+    candidates = unweaver.network_queries.candidates_dwithin(G_street, lon, lat, 1, is_destination=False, dwithin=dwithin)
+
+    if candidates is None:
+        return None
+
+    candidate = next(candidates)
+
+    score = sidewalkscore2(networks, candidate)
+
+    return score
