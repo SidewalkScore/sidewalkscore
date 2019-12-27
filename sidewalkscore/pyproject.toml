@@ -5,13 +5,31 @@ description = "SidewalkScore, a network-based foundation for walkability metrics
 authors = ["Nick Bolten"]
 license = "apache-2.0"
 
+[tool.poetry.scripts]
+sidewalkscore = "sidewalkscore:cli.sidewalkscore"
+
 [tool.poetry.dependencies]
 python = "^3.6"
 shapely = "^1.6"
 entwiner = {git = "https://github.com/nbolten/entwiner.git", rev="4cacee4"}
 unweaver = {git = "https://github.com/nbolten/unweaver.git", rev="0f10383"}
+pre-commit = "^1.20.0"
 
 [tool.poetry.dev-dependencies]
+pytest = "^5.2"
+black = "18.9b0"
+pre-commit = "^1.20"
+
+[tool.black]
+exclude = """
+(
+  setup.py
+)
+"""
+
+[tool.dephell.main]
+from = {format = "poetry", path = "pyproject.toml"}
+to = {format = "setuppy", path = "setup.py"}
 
 [build-system]
 requires = ["poetry>=0.12"]
