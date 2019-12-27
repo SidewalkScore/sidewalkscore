@@ -3,7 +3,7 @@ name = "sidewalkscore"
 version = "0.1.0"
 description = "SidewalkScore, a network-based foundation for walkability metrics."
 authors = ["Nick Bolten"]
-license = "apache-2.0"
+license = "Apache-2.0"
 
 [tool.poetry.scripts]
 sidewalkscore = "sidewalkscore:cli.sidewalkscore"
