@@ -198,13 +198,21 @@ def sidewalkscore_batch(pedestrian_db_directory, street_db_directory, out_file, 
     for i, (u, v, street) in enumerate(networks["street"]["G"].edges(data=True)):
     # for i, (u, v, street) in enumerate(networks["street"]["G"].iter_edges()):
         sidewalkscores = sidewalkscore(networks, street)
+
         # json_geometry_st = json.loads(street["_geometry"])
         json_geometry_st = street["_geometry"]
+
+        properties = {**street}
+        properties.pop("_geometry")
+        for name, score in sidewalkscores.items():
+            properties[f"sidewalkscore_{name}"] = score
+
         features.append({
             "type": "Feature",
             "geometry": json_geometry_st,
-            "properties": {f"sidewalkscore_{name}": score for name, score in sidewalkscores.items()}
+            "properties": properties,
         })
+
         # TODO: add click-independent interface for counter?
         if counter:
             counter.update(1)
@@ -236,6 +244,6 @@ def sidewalkscore_from_lonlat(lon, lat, networks, dwithin=5e-4):
 
     candidate = next(candidates)
 
-    score = sidewalkscore2(networks, candidate)
+    score = sidewalkscore(networks, candidate)
 
     return score

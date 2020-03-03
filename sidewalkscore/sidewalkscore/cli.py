@@ -43,7 +43,7 @@ def build(directory, changes_sign):
     click.echo("Building pedestrian network...")
     click.echo("Estimating pedestrian feature count...")
     n_pedestrian = 0
-    for path in get_layers_paths(street_directory):
+    for path in get_layers_paths(pedestrian_directory):
         with fiona.open(path) as c:
             n_pedestrian += len(c)
     with click.progressbar(length=n_pedestrian, label="Importing edges") as bar:
@@ -117,7 +117,7 @@ def score(directory):
 @click.option("--host", "-h", default="localhost")
 @click.option("--port", "-p", default=8000)
 @click.option("--debug", is_flag=True)
-def run(directory, host, port, debug=False):
+def serve(directory, host, port, debug=False):
     click.echo("Starting server in {}...".format(directory))
     # TODO: catch errors in starting server
     # TODO: spawn process?
