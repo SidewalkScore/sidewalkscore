@@ -81,6 +81,7 @@ def weight(directory):
             if profile["precalculate"]:
                 cost_function = profile["cost_function"]()
                 weight_column = "_weight_{}".format(profile["name"])
+                G.sqlitegraph.execute(f"ALTER TABLE edges ADD COLUMN {weight_column} float")
                 batch = []
                 for u, v, d in G.iter_edges():
                     # Update 100 at a time

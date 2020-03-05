@@ -43,7 +43,7 @@ def street_to_starts(networks, street_edge, interpolate=0.5):
     # as it's done in wgs84
     point_along = geometry_st.interpolate(interpolate, normalized=True)
 
-    street_candidates = unweaver.network_queries.dwithin.candidates_dwithin(
+    street_candidates = unweaver.graph.waypoint_candidates(
       G_street, point_along.x, point_along.y, 4, is_destination=False, dwithin=5e-4
     )
 
@@ -80,9 +80,7 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
     street_cost_function = street_profile["cost_function"]()
 
     # Get the midpoint
-    # FIXME: json.loads required for entwiner graph, but not networkx?
-    json_geometry_st = json.loads(street_edge["_geometry"])
-    geometry_st = shape(json_geometry_st)
+    geometry_st = shape(street_edge["_geometry"])
     # TODO: ensure interpolation happens geodetically - currently introduces errors
     # as it's done in wgs84
     midpoint = geometry_st.interpolate(interpolate, normalized=True)
@@ -97,7 +95,7 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
     if not sidewalk_ids:
         return {profile["name"]: 0 for profile in networks["pedestrian"]["profiles"]}
 
-    street_candidates = unweaver.network_queries.dwithin.candidates_dwithin(
+    street_candidates = unweaver.graph.waypoint_candidates(
       networks["street"]["G"], midpoint.x, midpoint.y, 4, is_destination=False, dwithin=5e-4
     )
 
@@ -110,20 +108,20 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
     sidewalks = []
     near_edges = G_ped.edges_dwithin(midpoint.x, midpoint.y, distance=5e-4, sort=True)
     near = list(near_edges)
-    for edge in near:
+    for u, v, d in near:
         # FIXME: hard-coded, prevents use of other datasets
-        if edge["_layer"] == "sidewalks":
-            if edge["pkey"] in to_retrieve:
-                sidewalks.append(edge)
-                to_retrieve.remove(edge["pkey"])
+        if d["_layer"] == "sidewalks":
+            if d["pkey"] in to_retrieve:
+                sidewalks.append(d)
+                to_retrieve.remove(d["pkey"])
 
     # Find reachable paths for all
     sw_distances = {profile["name"]: [] for profile in networks["pedestrian"]["profiles"]}
     sw_candidates_list = []
     for sidewalk in sidewalks:
-        sw_geometry = shape(json.loads(sidewalk["_geometry"]))
+        sw_geometry = shape(sidewalk["_geometry"])
         sw_midpoint = sw_geometry.interpolate(sw_geometry.project(midpoint))
-        sw_candidates = list(unweaver.network_queries.dwithin.candidates_dwithin(networks["pedestrian"]["G"], sw_midpoint.x, sw_midpoint.y, 1, is_destination=False, dwithin=5e-4))
+        sw_candidates = list(unweaver.graph.waypoint_candidates(networks["pedestrian"]["G"], sw_midpoint.x, sw_midpoint.y, 1, is_destination=False, dwithin=5e-4))
         sw_candidates_list.append(sw_candidates)
 
     for profile in networks["pedestrian"]["profiles"]:
@@ -221,23 +219,40 @@ def sidewalkscore_batch(pedestrian_db_directory, street_db_directory, out_file, 
 
     # TODO: incrementally build sidewalkscore GPKG in temp file, copy over on completion.
     # TODO: write to network database(!)
+
+    street_db = networks["street"]["G"].sqlitegraph
+    col_query = list(street_db.execute("PRAGMA table_info('edges')"))
+    properties_schema = OrderedDict()
+    for row in col_query:
+        if row["name"] in ("_u", "_v"):
+            # These get stripped from feature properties
+            continue
+        if row["type"].upper() == "INTEGER":
+            properties_schema[row["name"]] = "int"
+        elif row["type"].upper() == "REAL":
+            properties_schema[row["name"]] = "float"
+        elif row["type"].upper() == "TEXT":
+            properties_schema[row["name"]] = "str"
+
+    for name in sorted(sidewalkscores.keys()):
+        properties_schema[f"sidewalkscore_{name}"] = "float"
+
     schema = {
         "geometry": "LineString",
-        "properties": OrderedDict([
-            (f"sidewalkscore_{name}", "float") for name in sorted(sidewalkscores.keys())
-        ]),
+        "properties": properties_schema,
     }
 
     crs = fiona.crs.from_epsg(4326)
 
     with fiona.open(out_file, "w", driver="GPKG", crs=crs, schema=schema) as c:
         for feature in features:
+            feature_keys = set(feature["properties"].keys())
             c.write(feature)
 
 
 def sidewalkscore_from_lonlat(lon, lat, networks, dwithin=5e-4):
     G_street = networks["street"]["G"]
-    candidates = unweaver.network_queries.candidates_dwithin(G_street, lon, lat, 1, is_destination=False, dwithin=dwithin)
+    candidates = unweaver.graph.waypoint_candidates(G_street, lon, lat, 1, is_destination=False, dwithin=dwithin)
 
     if candidates is None:
         return None
