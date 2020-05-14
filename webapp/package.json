@@ -1,0 +1,36 @@
+{
+  "name": "accessmap-walkshed",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@turf/buffer": "^5.1.5",
+    "@turf/mask": "^5.1.5",
+    "@turf/union": "^5.1.5",
+    "chroma-js": "^2.0.3",
+    "dotenv": "^6.0.0",
+    "grommet": "^2.6.5",
+    "mapbox-gl": "^0.48.0",
+    "polished": "^3.2.0",
+    "react": "^16.4.2",
+    "react-dom": "^16.4.2",
+    "react-mapbox-gl": "^3.8.0",
+    "react-redux": "^5.0.7",
+    "react-scripts": "^2.1.8",
+    "redux": "^4.0.0",
+    "redux-logger": "^3.0.6",
+    "redux-thunk": "^2.3.0",
+    "styled-components": "^4.2.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  },
+  "browserslist": [
+    ">0.2%",
+    "not dead",
+    "not ie <= 11",
+    "not op_mini all"
+  ]
+}

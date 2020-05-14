@@ -1,5 +1,9 @@
-# editors
-*.swp
+# bytecode
+*.pyc
+__pycache__
 
-# misc
-.DS_Store
+# Virtual environment
+venv
+
+# Test data
+tests

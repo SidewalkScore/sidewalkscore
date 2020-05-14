@@ -1,0 +1,12 @@
+{
+  "name": "electric",
+  "precalculate": true,
+  "static": {
+    "avoid_curbs": true,
+    "uphill": 0.11,
+    "downhill": 0.12,
+    "elevators": true
+  },
+  "cost_function": "cost-dynamic.py",
+  "directions": "directions-dynamic.py"
+}

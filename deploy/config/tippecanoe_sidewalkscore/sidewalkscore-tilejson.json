@@ -1,0 +1,22 @@
+{
+  "bounds": [-122.651,47.266,-121.955,48.828],
+  "center": [-122.339,47.604,15],
+  "created": 1530442267792,
+  "description": "SidewalkScore",
+  "filesize": 183337,
+  "format": "pbf",
+  "id": "sidewalkscore",
+  "mapbox_logo": true,
+  "maxzoom": 14,
+  "minzoom": 0,
+  "modified": 1530442267511,
+  "name": "SidewalkScore",
+  "private": false,
+  "scheme": "xyz",
+  "tilejson": "2.2.0",
+  "tiles": [
+    "HOSTNAME/tiles/sidewalkscore/{z}/{x}/{y}.pbf"
+  ],
+  "version": "1.0.0",
+  "webpage": "www.accessmap.io"
+}

@@ -1,0 +1,5 @@
+{
+  "name": "dynamic",
+  "cost_function": "cost-dynamic.py",
+  "directions": "directions-dynamic.py"
+}

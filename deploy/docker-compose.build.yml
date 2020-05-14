@@ -1,0 +1,38 @@
+version: '3.2'
+
+services:
+  unweaver_build:
+    build: ./dockerfiles/unweaver
+    command: bash -c "cp -r /inputconfig/* /data && cp -r /inputdata/layers /data/ && poetry run unweaver build /data --changes-sign incline && poetry run unweaver weight /data"
+    volumes:
+      - ./config/unweaver:/inputconfig:rw
+      - ./data/transportation.geojson:/inputdata/layers/transportation.geojson:ro
+      - ./build/router:/data:rw
+
+  unweaver_streets_build:
+    build: ./dockerfiles/unweaver
+    command: bash -c "cp -r /inputconfig/* /data && cp -r /inputdata/layers /data/ && poetry run unweaver build /data --changes-sign incline"
+    volumes:
+      - ./config/unweaver_streets:/inputconfig:rw
+      - ./data/streets.geojson:/inputdata/layers/streets.geojson:ro
+      - ./build/router_streets:/data:rw
+
+  tippecanoe:
+    build: https://github.com/mapbox/tippecanoe.git#1.33.0
+    entrypoint: sh /build_tiles.sh /home/tippecanoe/input /home/tippecanoe/output http://localhost:2015
+    volumes:
+      - ./config/tippecanoe/build_tiles.sh:/build_tiles.sh:ro
+      - ./config/tippecanoe/pedestrian-tilejson.json:/home/tippecanoe/pedestrian.json:ro
+      - ./data/transportation.geojson:/home/tippecanoe/input/transportation.geojson:ro
+      - ./build/tiles:/home/tippecanoe/output:rw
+
+  webapp:
+    build:
+      ../webapp
+    command: npm run build
+    environment:
+      - REACT_APP_MAPBOX_TOKEN=$WALKSHED_MAPBOX_TOKEN
+      - REACT_APP_TILESERVER=/tiles
+      - REACT_APP_ROUTESERVER=/api/routing
+    volumes:
+      - ./build/webapp:/www/build
