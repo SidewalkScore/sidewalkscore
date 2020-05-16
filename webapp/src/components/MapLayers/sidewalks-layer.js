@@ -48,7 +48,7 @@ const SidewalksLayer = () => {
         paint={{
           "line-color": "#eee",
           "line-opacity": {
-            stops: [[10, 0.0], [13, 1]],
+            stops: [[10, 0.0], [13, 0]],
           },
           "line-width": PATH_WIDTH_EXPRESSION
         }}

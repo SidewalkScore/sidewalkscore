@@ -65,7 +65,7 @@ class Map extends Component {
         center={center}
         zoom={zoom}
         maxBounds={[[-122.714460, 47.406897], [-121.907342, 47.809213]]}
-        style="mapbox://styles/mapbox/light-v9"  // eslint-disable-line react/style-prop-object
+        style="mapbox://styles/mapbox/dark-v9"  // eslint-disable-line react/style-prop-object
         onMouseMove={(m, e) => {
           m.getCanvas().style.cursor = "pointer";
         }}
