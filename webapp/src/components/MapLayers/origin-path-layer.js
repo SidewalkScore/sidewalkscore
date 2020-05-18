@@ -17,7 +17,7 @@ const OriginPathLayer = (props) => {
           type: "Feature",
           geometry: {
             type: "LineString",
-            coordinates: [poi, origin.geometry.coordinates],
+            coordinates: [poi, origin.coordinates],
           },
         }]
       }}

@@ -1,43 +1,40 @@
 import { combineReducers } from "redux";
 import {
-//  GET_REACHABLE,
-//  GET_REACHABLE_STREETS,
-  GET_REACHABLE_BOTH,
+  ENABLE_WIDTH_RESTRICTION,
+  DISABLE_WIDTH_RESTRICTION,
+  FAILED_REACHABLE_BOTH,
+  RECEIVED_REACHABLE_BOTH,
   SET_TRAVEL_MODE,
   SET_WALKDISTANCE,
 } from "./actions";
 
 const defaults = {
-  travelMode: "Manual wheelchair",
+  failure: null,
   sidewalkScore: null,
+  travelMode: "Manual wheelchair",
   walkshed: null,
   walkshedStreets: null,
   walkdistance: 400,
+  widthRestricted: false,
 };
 
-const handleWalkshed = (state = defaults.walkshed, action) => {
+const handleFailure = (state = defaults.failure, action) => {
+  let networks;
   switch (action.type) {
-    case GET_REACHABLE_BOTH:
-      return {
-        ...state,
-        lon: action.payload.lon,
-        lat: action.payload.lat,
-        reachable: action.payload.reachable,
-      };
-    default:
-      return state;
-  }
-};
-
-const handleWalkshedStreets = (state = defaults.walkshedStreets, action) => {
-  switch (action.type) {
-    case GET_REACHABLE_BOTH:
-      return {
-        ...state,
-        lon: action.payload.lon,
-        lat: action.payload.lat,
-        reachable: action.payload.reachableStreets,
-      };
+    case FAILED_REACHABLE_BOTH:
+      if (action.payload.pedestrianStart) {
+          networks = "pedestrian";
+        if (action.payload.streetStart) {
+          networks = "pedestrian and street";
+        }
+      } else {
+        if (action.payload.streetStart) {
+          networks = "street";
+        }
+      }
+      return `No start on ${networks} networks`;
+    case RECEIVED_REACHABLE_BOTH:
+      return null;
     default:
       return state;
   }
@@ -45,19 +42,12 @@ const handleWalkshedStreets = (state = defaults.walkshedStreets, action) => {
 
 const handleSidewalkScore = (state = defaults.sidewalkScore, action) => {
   switch (action.type) {
-    case GET_REACHABLE_BOTH:
+    case FAILED_REACHABLE_BOTH:
+      return null;
+    case RECEIVED_REACHABLE_BOTH:
       const pedestrianTotalDistance = action.payload.reachable.edges.features.reduce((a, v) => a + v.properties.length, 0);
       const streetsTotalDistance = action.payload.reachableStreets.edges.features.reduce((a, v) => a + v.properties.length, 0);
       return pedestrianTotalDistance / streetsTotalDistance / 2;
-    default:
-      return state;
-  }
-};
-
-const handleWalkdistance = (state = defaults.walkdistance, action) => {
-  switch (action.type) {
-    case SET_WALKDISTANCE:
-      return action.payload;
     default:
       return state;
   }
@@ -72,10 +62,60 @@ const handleTravelMode = (state = defaults.travelMode, action) => {
   }
 };
 
+const handleWalkshed = (state = defaults.walkshed, action) => {
+  switch (action.type) {
+    case RECEIVED_REACHABLE_BOTH:
+      return {
+        ...state,
+        lon: action.payload.lon,
+        lat: action.payload.lat,
+        reachable: action.payload.reachable,
+      };
+    default:
+      return state;
+  }
+};
+
+const handleWalkshedStreets = (state = defaults.walkshedStreets, action) => {
+  switch (action.type) {
+    case RECEIVED_REACHABLE_BOTH:
+      return {
+        ...state,
+        lon: action.payload.lon,
+        lat: action.payload.lat,
+        reachable: action.payload.reachableStreets,
+      };
+    default:
+      return state;
+  }
+};
+
+const handleWalkdistance = (state = defaults.walkdistance, action) => {
+  switch (action.type) {
+    case SET_WALKDISTANCE:
+      return action.payload;
+    default:
+      return state;
+  }
+};
+
+const handleWidthRestricted = (state = defaults.widthRestricted, action) => {
+  switch (action.type) {
+    case ENABLE_WIDTH_RESTRICTION:
+      return true;
+    case DISABLE_WIDTH_RESTRICTION:
+      return false;
+    default:
+      return state;
+  }
+};
+
 export default combineReducers({
+  failure: handleFailure,
   travelMode: handleTravelMode,
   sidewalkScore: handleSidewalkScore,
   walkshed: handleWalkshed,
   walkshedStreets: handleWalkshedStreets,
   walkdistance: handleWalkdistance,
+  widthRestricted: handleWidthRestricted,
 });

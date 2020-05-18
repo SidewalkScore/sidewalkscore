@@ -35,6 +35,7 @@ const SidewalkScoreLayer = ({layerName}) => {
 
   return (
     <React.Fragment>
+      { /*
       <Layer
         id="sidewalkscore-outline"
         type="line"
@@ -50,6 +51,7 @@ const SidewalkScoreLayer = ({layerName}) => {
         }}
         before="bridge-street"
       />
+      */ }
       <Layer
         id="sidewalkscore"
         type="line"

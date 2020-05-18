@@ -17,7 +17,7 @@ export default {
     uphill: 0.1,
     downhill: 0.12
   },
-  "Walk": {
+  "Walking (normative)": {
     avoid_curbs: 0,
     base_speed: 1.8,
     uphill: 0.20,

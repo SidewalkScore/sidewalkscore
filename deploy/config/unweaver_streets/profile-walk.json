@@ -1,6 +1,0 @@
-{
-  "name": "walk",
-  "precalculate": true,
-  "cost_function": "cost-dynamic.py",
-  "directions": "directions-dynamic.py"
-}

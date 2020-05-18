@@ -12,7 +12,7 @@ sidewalkscore = "sidewalkscore:cli.sidewalkscore"
 python = "^3.6"
 shapely = "^1.6"
 entwiner = {git = "https://github.com/nbolten/entwiner.git", rev="f0f32d0"}
-unweaver = {git = "https://github.com/nbolten/unweaver.git", rev="813d25b"}
+unweaver = {git = "https://github.com/nbolten/unweaver.git", rev="2ecb9de"}
 pre-commit = "^1.20.0"
 
 [tool.poetry.dev-dependencies]

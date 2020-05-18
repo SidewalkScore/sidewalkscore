@@ -93,7 +93,7 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
         sidewalk_ids.append(street_edge["pkey_right"])
 
     if not sidewalk_ids:
-        return {profile["name"]: 0 for profile in networks["pedestrian"]["profiles"]}
+        return {profile["id"]: 0 for profile in networks["pedestrian"]["profiles"]}
 
     street_candidates = unweaver.graph.waypoint_candidates(
       networks["street"]["G"], midpoint.x, midpoint.y, 4, is_destination=False, dwithin=5e-4
@@ -116,7 +116,7 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
                 to_retrieve.remove(d["pkey"])
 
     # Find reachable paths for all
-    sw_distances = {profile["name"]: [] for profile in networks["pedestrian"]["profiles"]}
+    sw_distances = {profile["id"]: [] for profile in networks["pedestrian"]["profiles"]}
     sw_candidates_list = []
     for sidewalk in sidewalks:
         sw_geometry = shape(sidewalk["_geometry"])
@@ -125,10 +125,10 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
         sw_candidates_list.append(sw_candidates)
 
     for profile in networks["pedestrian"]["profiles"]:
-        name = profile["name"]
+        profile_id = profile["id"]
         # TODO: calculate dynamic weights if static is not available
         if "static" in profile:
-            cost_function = lambda u, v, d: d.get(f"_weight_{name}", None)
+            cost_function = lambda u, v, d: d.get(f"_weight_{profile_id}", None)
         else:
             cost_function = profile["cost_function"]()
         # name, cost_function in cost_functions.items():
@@ -139,9 +139,10 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
             sw_candidate = unweaver.algorithms.shortest_path._choose_candidate(copy.deepcopy(sw_candidates), cost_function)
             if sw_candidate is None:
                 # No valid candidate could be identified - falls outside cost fun
-                sw_distances[name].append(0)
+                sw_distances[profile_id].append(0)
             else:
-                sw_nodes, sw_edges = unweaver.algorithms.reachable.reachable(networks["pedestrian"]["G"], sw_candidate, cost_function, max_cost=400)
+                G_aug = unweaver.augmented.prepare_augmented(networks["pedestrian"]["G"], sw_candidate)
+                sw_nodes, sw_edges = unweaver.algorithms.reachable.reachable(G_aug, sw_candidate, cost_function, max_cost=400)
                 sw_distance = 0
                 seen_edges = set([])
                 for edge in sw_edges:
@@ -151,11 +152,12 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
                             sw_distance += edge["length"]
                             seen_edges.add(edge["pkey"])
                 # sw_distance = sum([edge["length"] for edge in sw_edges])
-                sw_distances[name].append(sw_distance)
+                sw_distances[profile_id].append(sw_distance)
 
     sw_total_distances = {name: sum(distances) for name, distances in sw_distances.items()}
 
-    st_nodes, st_edges = unweaver.algorithms.reachable.reachable(networks["street"]["G"], street_candidate, street_cost_function, max_cost=400)
+    G_aug = unweaver.augmented.prepare_augmented(networks["street"]["G"], street_candidate)
+    st_nodes, st_edges = unweaver.algorithms.reachable.reachable(G_aug, street_candidate, street_cost_function, max_cost=400)
     st_total_distance = sum([edge["length"] for edge in st_edges])
 
     final_scores = {}
@@ -173,7 +175,7 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
 
     return final_scores
 
-def sidewalkscore_batch(pedestrian_db_directory, street_db_directory, out_file, counter=None):
+def sidewalkscore_batch(pedestrian_db_directory, street_db_directory, out_file, driver="GPKG", counter=None):
     # TODO: use multiprocessing - speed up by nx, where n = cores
     networks = {}
     for network_type, directory in zip(["pedestrian", "street"], [pedestrian_db_directory, street_db_directory]):
@@ -197,11 +199,9 @@ def sidewalkscore_batch(pedestrian_db_directory, street_db_directory, out_file, 
     # for i, (u, v, street) in enumerate(networks["street"]["G"].iter_edges()):
         sidewalkscores = sidewalkscore(networks, street)
 
-        # json_geometry_st = json.loads(street["_geometry"])
-        json_geometry_st = street["_geometry"]
+        properties = {k: v for k, v in street.items() if not k.startswith("_weight")}
+        json_geometry_st = properties.pop("_geometry")
 
-        properties = {**street}
-        properties.pop("_geometry")
         for name, score in sidewalkscores.items():
             properties[f"sidewalkscore_{name}"] = score
 
@@ -244,10 +244,17 @@ def sidewalkscore_batch(pedestrian_db_directory, street_db_directory, out_file, 
 
     crs = fiona.crs.from_epsg(4326)
 
-    with fiona.open(out_file, "w", driver="GPKG", crs=crs, schema=schema) as c:
+    with fiona.open(out_file, "w", driver=driver, crs=crs, schema=schema) as c:
+        i = 0
+        batch = []
         for feature in features:
-            feature_keys = set(feature["properties"].keys())
-            c.write(feature)
+            if i < 1000:
+                batch.append(feature)
+                i += 1
+            else:
+                c.writerecords(batch)
+                i = 0
+        c.writerecords(batch)
 
 
 def sidewalkscore_from_lonlat(lon, lat, networks, dwithin=5e-4):

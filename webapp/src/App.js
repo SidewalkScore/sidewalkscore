@@ -3,6 +3,8 @@ import { Provider } from "react-redux";
 import dotenv from "dotenv";
 
 import { Box, Grid, Grommet } from "grommet";
+import { dark } from "grommet/themes";
+import { deepMerge } from 'grommet/utils';
 
 import "./App.css";
 
@@ -16,7 +18,7 @@ dotenv.config();
 
 const store = createStore();
 
-const theme = {
+const theme = deepMerge(dark, {
   global: {
     font: {
       family: "Roboto",
@@ -27,7 +29,7 @@ const theme = {
   formField: {
     border: false
   }
-};
+});
 
 class App extends Component {
   render() {

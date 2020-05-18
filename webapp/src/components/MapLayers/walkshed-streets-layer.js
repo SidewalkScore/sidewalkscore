@@ -11,6 +11,7 @@ const WalkshedStreetsLayer = (props) => {
 
   return (
     <>
+     {/*
       <GeoJSONLayer
         data={walkshed}
         lineLayout={{ "line-cap": "round" }}
@@ -18,8 +19,9 @@ const WalkshedStreetsLayer = (props) => {
           "line-color": "#000",
           "line-width": PATH_WIDTH_EXPRESSION,
         }}
-        before="sidewalkscore-outline"
+        before="sidewalkscore"
       />
+      */}
     </>
   );
 }

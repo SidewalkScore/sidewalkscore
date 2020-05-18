@@ -25,6 +25,6 @@ setup(
     package_dir={"": "."},
     package_data={},
     install_requires=['entwiner', 'pre-commit==1.*,>=1.20.0', 'shapely==1.*,>=1.6.0', 'unweaver'],
-    dependency_links=['git+https://github.com/nbolten/entwiner.git@f0f32d0#egg=entwiner', 'git+https://github.com/nbolten/unweaver.git@813d25b#egg=unweaver'],
+    dependency_links=['git+https://github.com/nbolten/entwiner.git@f0f32d0#egg=entwiner', 'git+https://github.com/nbolten/unweaver.git@2ecb9de#egg=unweaver'],
     extras_require={"dev": ["black==18.9b0", "dephell==0.*,>=0.8.3", "pytest==5.*,>=5.2.0"]},
 )

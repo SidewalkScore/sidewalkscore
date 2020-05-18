@@ -1,19 +1,37 @@
 const travelModeMap = {
-  "Manual wheelchair": "wheelchair",
-  "Powered wheelchair": "electric",
+  "Manual wheelchair": "manual_wheelchair",
+  "Powered wheelchair": "powered_wheelchair",
   "Cane": "cane",
-  "Walk": "walk",
+  "Walking (normative)": "walking",
 };
 
 const routeServer = process.env.REACT_APP_ROUTESERVER;
 const routeStreetsServer = process.env.REACT_APP_ROUTESTREETSSERVER;
 
+export const ENABLE_WIDTH_RESTRICTION = "ENABLE_WIDTH_RESTRICTION";
+export const DISABLE_WIDTH_RESTRICTION = "DISABLE_WIDTH_RESTRICTION";
 export const SET_TRAVEL_MODE = "SET_TRAVEL_MODE";
 export const GET_REACHABLE = "GET_REACHABLE";
-export const GET_REACHABLE_BOTH = "GET_REACHABLE_BOTH";
+export const RECEIVED_REACHABLE_BOTH = "RECEIVED_REACHABLE_BOTH";
+export const FAILED_REACHABLE_BOTH = "FAILED_REACHABLE_BOTH";
 export const GET_REACHABLE_STREETS = "GET_REACHABLE_STREETS";
 export const SET_WALKDISTANCE = "SET_WALKDISTANCE";
 export const CLICK_MAP = "CLICK_MAP";
+
+export const enableWidthRestriction = () => (dispatch, getState) => {
+  dispatch({
+    type: ENABLE_WIDTH_RESTRICTION
+  });
+  fetchWalkshed({min_width: 2}, dispatch, getState);
+};
+
+export const disableWidthRestriction = () => (dispatch, getState) => {
+  dispatch({
+    type: DISABLE_WIDTH_RESTRICTION
+  });
+  fetchWalkshed({min_width: 0}, dispatch, getState);
+};
+
 
 export const setTravelMode = (travelMode) => (dispatch, getState) => {
   dispatch({
@@ -57,18 +75,34 @@ export const getReachableStreets = (lon, lat, reachable) => ({
   payload: {lon, lat, reachable},
 });
 
-export const getReachableBoth = (lon, lat, reachable, reachableStreets) => ({
-  type: GET_REACHABLE_BOTH,
-  payload: {lon, lat, reachable, reachableStreets},
-});
+export const getReachableBoth = (lon, lat, reachable, reachableStreets) => (dispatch, getState) => {
+  const invalidPedestrianStart = reachable.status === "InvalidWaypoint";
+  const invalidStreetStart = reachableStreets.status === "InvalidWaypoint";
+
+  if (invalidPedestrianStart || invalidStreetStart) {
+    dispatch({
+      type: FAILED_REACHABLE_BOTH,
+      payload: {
+        pedestrianStart: invalidPedestrianStart,
+        streetStart: invalidStreetStart
+      },
+    });
+  } else {
+    dispatch({
+      type: RECEIVED_REACHABLE_BOTH,
+      payload: {lon, lat, reachable, reachableStreets},
+    });
+  }
+};
 
 export const fetchWalkshed  = (newParams, dispatch, getState) => {
   const state = getState();
-  const { travelMode } = state;
+  const { travelMode, widthRestricted } = state;
   const queryParams = {
     lon: state.walkshed ? state.walkshed.lon : null,
     lat: state.walkshed ? state.walkshed.lat : null,
     max_cost: state.walkdistance,
+    min_width: widthRestricted ? 2 : 0,
     ...newParams,
   }
 
@@ -80,13 +114,10 @@ export const fetchWalkshed  = (newParams, dispatch, getState) => {
     .map(k => `${esc(k)}=${esc(queryParams[k])}`)
     .join("&");
 
-  const profile = travelModeMap[travelMode];
+  const profile = widthRestricted ? travelModeMap[travelMode] + "_width" : travelModeMap[travelMode];
 
   const swWalkshedURL = `${routeServer}/reachable/${profile}.json?${queryURL}`;
-  const stWalkshedURL = `${routeStreetsServer}/reachable/dynamic.json?${queryURL}`;
-
-  // const swWalkshedURL = `${routeServer}/reachable/dynamic.json?${queryURL}`;
-  // const stWalkshedURL = `${routeStreetsServer}/reachable/dynamic.json?${queryURL}`;
+  const stWalkshedURL = `${routeStreetsServer}/reachable/walking.json?${queryURL}`;
 
   const swWalkshedFetch = fetch(swWalkshedURL)
   const stWalkshedFetch = fetch(stWalkshedURL)
@@ -102,8 +133,6 @@ export const fetchWalkshed  = (newParams, dispatch, getState) => {
         }
       }
       dispatch(getReachableBoth(queryParams.lon, queryParams.lat, jsons[0], jsons[1]));
-      // dispatch(getReachable(queryParams.lon, queryParams.lat, jsons[0]));
-      // dispatch(getReachableStreets(queryParams.lon, queryParams.lat, jsons[1]));
     })
     .catch(error => {});
 }

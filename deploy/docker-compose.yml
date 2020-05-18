@@ -2,24 +2,24 @@ version: '3.2'
 
 services:
   unweaver:
-    build: ./dockerfiles/unweaver
-    command: poetry run unweaver run /data -h 0.0.0.0 -p 5656
+    build: https://github.com/nbolten/unweaver.git
+    command: poetry run unweaver serve /data -h 0.0.0.0 -p 5656
     ports:
       - 5656:5656
     environment:
       - SERVER_PORT=5656
     volumes:
-      - ./build/router:/data:ro
+      - ./data/sidewalkscore/pedestrian:/data:ro
 
   unweaver_streets:
-    build: ./dockerfiles/unweaver
-    command: poetry run unweaver run /data -h 0.0.0.0 -p 5657
+    build: https://github.com/nbolten/unweaver.git
+    command: poetry run unweaver serve /data -h 0.0.0.0 -p 5657
     ports:
       - 5657:5657
     environment:
       - SERVER_PORT=5657
     volumes:
-      - ./build/router_streets:/data:ro
+      - ./data/sidewalkscore/street:/data:ro
 
   caddy:
     image: abiosoft/caddy:0.11.5-no-stats

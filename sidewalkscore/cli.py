@@ -1,5 +1,6 @@
 """sidewalkscore CLI."""
 import os
+import sqlite3
 
 import click
 import fiona
@@ -57,59 +58,60 @@ def build(directory, changes_sign):
 def weight(directory):
     # TODO: carbon-copied from unweaver. Could just allow a pass-through to unweaver
     # cli?
-    pedestrian_directory = os.path.join(directory, "pedestrian")
-    street_directory = os.path.join(directory, "street")
+    for network_type in ("street", "pedestrian"):
+        network_directory = os.path.join(directory, network_type)
 
-    # TODO: catch errors in starting server
-    # TODO: spawn process?
-    click.echo("Calculating static street network weights...")
-    # precalculate_weights(street_directory)
 
-    click.echo("Calculating static pedestrian network weights...")
+        click.echo(f"Calculating static {network_type} network weights...")
 
-    profiles = parse_profiles(pedestrian_directory)
-    G = entwiner.DiGraphDB(path=os.path.join(pedestrian_directory, "graph.db"))
+        profiles = parse_profiles(network_directory)
+        n_profiles = len([p for p in profiles if p["precalculate"]])
 
-    # TODO: speedup with .size() in entwiner
-    n_profiles = len([p for p in profiles if p["precalculate"]])
-    n_weights = G.size() * n_profiles
+        G = entwiner.DiGraphDB(path=os.path.join(network_directory, "graph.db"))
+        # TODO: speedup with .size() in entwiner
+        n_weights = G.size() * n_profiles
 
-    # TODO: pass progressbar to precalculate_weights function or find equivalent
-    # alternative
-    with click.progressbar(length=n_weights, label="Computing pedestrian network weights") as bar:
-        for profile in profiles:
-            if profile["precalculate"]:
-                cost_function = profile["cost_function"]()
-                weight_column = "_weight_{}".format(profile["name"])
-                G.sqlitegraph.execute(f"ALTER TABLE edges ADD COLUMN {weight_column} float")
-                batch = []
-                for u, v, d in G.iter_edges():
-                    # Update 100 at a time
-                    weight = cost_function(u, v, d)
-                    if len(batch) == 1000:
+        # TODO: pass progressbar to precalculate_weights function or find equivalent
+        # alternative
+        with click.progressbar(length=n_weights, label="Computing pedestrian network weights") as bar:
+            for profile in profiles:
+                if profile["precalculate"]:
+                    cost_function = profile["cost_function"]()
+                    weight_column = "_weight_{}".format(profile["id"])
+                    try:
+                        G.sqlitegraph.execute(f"ALTER TABLE edges ADD COLUMN {weight_column} float")
+                    except sqlite3.OperationalError:
+                        pass
+                    batch = []
+                    for u, v, d in G.iter_edges():
+                        # Update 100 at a time
+                        weight = cost_function(u, v, d)
+                        if len(batch) == 1000:
+                            G.update_edges(batch)
+                            batch = []
+                        batch.append((u, v, {weight_column: weight}))
+                        bar.update(1)
+                    # Update any remaining edges in batch
+                    if batch:
                         G.update_edges(batch)
-                        batch = []
-                    batch.append((u, v, {weight_column: weight}))
-                    bar.update(1)
-                # Update any remaining edges in batch
-                if batch:
-                    G.update_edges(batch)
 
     click.echo("Done.")
 
 
 @sidewalkscore.command()
 @click.argument("directory", type=click.Path("r"))
-def score(directory):
+@click.option("--output", "-o", default="sidewalkscore.gpkg")
+@click.option("--output_driver", "-od", default="GPKG")
+def score(directory, output, output_driver):
     pedestrian_directory = os.path.join(directory, "pedestrian")
     street_directory = os.path.join(directory, "street")
-    output_path = os.path.join(directory, "sidewalkscore.gpkg")
+    output_path = os.path.join(directory, output)
 
     G = entwiner.DiGraphDB(path=os.path.join(street_directory, "graph.db"))
     n = G.size()
     click.echo("Converting to in-memory graph databases...")
     with click.progressbar(length=n, label="Computing SidewalkScores") as bar:
-        sidewalkscore_batch(pedestrian_directory, street_directory, output_path, counter=bar)
+        sidewalkscore_batch(pedestrian_directory, street_directory, output_path, driver=output_driver, counter=bar)
     click.echo("Done.")
 
 

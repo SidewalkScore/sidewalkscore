@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 
-import { Box, FormField, Heading, RadioButtonGroup, RangeInput } from "grommet";
+import { Box, CheckBox, FormField, Heading, RadioButtonGroup, RangeInput } from "grommet";
 
 import * as AppActions from "../../actions";
 
@@ -11,9 +11,11 @@ class ControlBar extends Component {
   render() {
     const {
       actions,
+      failure,
       sidewalkScore,
       travelMode,
       walkdistance,
+      widthRestricted,
     } = this.props;
 
     return (
@@ -39,10 +41,10 @@ class ControlBar extends Component {
           </FormField>
         </Box>
         <Box direction="column">
-          <FormField label="Select travel mode" pad>
+          <FormField label="Travel mode" pad>
             <RadioButtonGroup
-              name="Select Travel Mode"
-              options={["Manual wheelchair", "Powered wheelchair", "Cane", "Walk"]}
+              name="Travel Mode"
+              options={["Manual wheelchair", "Powered wheelchair", "Cane", "Walking (normative)"]}
               value={travelMode}
               onChange={(e) => {
                 const target = e.target || null;
@@ -52,15 +54,35 @@ class ControlBar extends Component {
             />
           </FormField>
         </Box>
+        <Box direction="column">
+          <FormField label="Width restriction" pad>
+            <CheckBox
+              label="Minimum width of 2 meters"
+              checked={widthRestricted}
+              onChange={(e) => {
+                if (widthRestricted) {
+                  actions.disableWidthRestriction();
+                } else {
+                  actions.enableWidthRestriction();
+                }
+              }}
+            />
+          </FormField>
+        </Box>
+        <Box direction="column">
+          { failure && failure }
+        </Box>
       </Box>
     );
   }
 }
 
 const mapStateToProps = state => ({
+  failure: state.failure,
   travelMode: state.travelMode,
   sidewalkScore: state.sidewalkScore,
   walkdistance: state.walkdistance,
+  widthRestricted: state.widthRestricted,
 });
 
 const mapDispatchToProps = dispatch => ({

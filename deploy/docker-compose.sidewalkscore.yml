@@ -2,19 +2,7 @@ version: '3.2'
 
 services:
   sidewalkscore:
-    build: ./dockerfiles/unweaver
-    command: bash -c "poetry run python /sidewalkscore.py /ped_setup /st_setup /sidewalkscore.geojson"
+    build: ..
+    command: bash -c "poetry run sidewalkscore build --changes-sign incline /config && poetry run sidewalkscore weight /config && poetry run sidewalkscore score -o sidewalkscore.geojson -od GeoJSON /config"
     volumes:
-      - ./config/unweaver:/ped_setup:ro
-      - ./config/unweaver_streets:/st_setup:ro
-      - ./sidewalkscore.py:/sidewalkscore.py:ro
-      - ./data/sidewalkscore.geojson:/sidewalkscore.geojson:rw
-
-  tippecanoe:
-    build: https://github.com/mapbox/tippecanoe.git#1.33.0
-    entrypoint: sh /build_tiles.sh /home/tippecanoe/input /home/tippecanoe/output http://localhost:2015
-    volumes:
-      - ./config/tippecanoe_sidewalkscore/build_tiles.sh:/build_tiles.sh:ro
-      - ./config/tippecanoe_sidewalkscore/sidewalkscore-tilejson.json:/home/tippecanoe/sidewalkscore.json:ro
-      - ./data/sidewalkscore.geojson:/home/tippecanoe/input/sidewalkscore.geojson:ro
-      - ./build/tiles:/home/tippecanoe/output:rw
+      - ./data/sidewalkscore:/config:rw

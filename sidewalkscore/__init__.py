@@ -1,1 +1,1 @@
-from . import sidewalkscore
+from . import cli, sidewalkscore

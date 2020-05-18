@@ -51,8 +51,8 @@ class Map extends Component {
       case "Cane":
         travelLayerString = "sidewalkscore_cane";
         break;
-      case "Walk":
-        travelLayerString = "sidewalkscore_walk";
+      case "Walk (normative)":
+        travelLayerString = "sidewalkscore_walking";
         break;
       default:
         travelLayerString = "sidewalkscore_wheelchair";
