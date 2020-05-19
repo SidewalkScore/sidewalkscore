@@ -17,6 +17,19 @@ export const FAILED_REACHABLE_BOTH = "FAILED_REACHABLE_BOTH";
 export const GET_REACHABLE_STREETS = "GET_REACHABLE_STREETS";
 export const SET_WALKDISTANCE = "SET_WALKDISTANCE";
 export const CLICK_MAP = "CLICK_MAP";
+export const SET_VIEW_MODE_SIDEWALKSCORE = "SET_VIEW_MODE_SIDEWALKSCORE";
+export const SET_VIEW_MODE_WALKSHEDS = "SET_VIEW_MODE_WALKSHEDS";
+export const CLEAR_SIDEWALKSCORE = "CLEAR_SIDEWALKSCORE";
+
+export const clearSidewalkScore = () => ({type: CLEAR_SIDEWALKSCORE});
+
+export const setViewModeSidewalkScore = () => ({
+  type: SET_VIEW_MODE_SIDEWALKSCORE,
+});
+
+export const setViewModeWalksheds = () => ({
+  type: SET_VIEW_MODE_WALKSHEDS,
+});
 
 export const enableWidthRestriction = () => (dispatch, getState) => {
   dispatch({

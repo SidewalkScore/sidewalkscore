@@ -21,41 +21,57 @@ const PATH_WIDTH_EXPRESSION = realWidthExpression(PATH_WIDTH);
 //   "#eee"
 // ];
 
-const SidewalksLayer = () => {
-  return (
-    <React.Fragment>
-      <Layer
-        id="sidewalks-outline"
-        type="line"
-        sourceId="pedestrian"
-        sourceLayer="transportation"
-        layout={{ "line-cap": "round" }}
-        paint={{
-          "line-color": "#999",
-          "line-opacity": {
-            stops: [[14, 0.0], [18, 1]],
-          },
-          "line-gap-width": PATH_WIDTH_EXPRESSION
-        }}
-        before="bridge-street"
-      />
-      <Layer
-        id="sidewalks"
-        type="line"
-        sourceId="pedestrian"
-        sourceLayer="transportation"
-        layout={{ "line-cap": "round" }}
-        paint={{
-          "line-color": "#eee",
-          "line-opacity": {
-            stops: [[10, 0.0], [13, 0]],
-          },
-          "line-width": PATH_WIDTH_EXPRESSION
-        }}
-        before="bridge-street"
-      />
-    </React.Fragment>
-  );
-};
+const SidewalksLayer = ({uphill, avoid_curbs, width}) => (
+  <>
+    <Layer
+      id="sidewalks-outline"
+      type="line"
+      sourceId="pedestrian"
+      sourceLayer="transportation"
+      layout={{ "line-cap": "round" }}
+      paint={{
+        "line-color": "#999",
+        "line-opacity": {
+          stops: [[14, 0.0], [18, 1]],
+        },
+        "line-gap-width": PATH_WIDTH_EXPRESSION
+      }}
+      before="bridge-street"
+    />
+    <Layer
+      id="sidewalks"
+      type="line"
+      sourceId="pedestrian"
+      sourceLayer="transportation"
+      layout={{ "line-cap": "round" }}
+      paint={{
+        "line-color": [
+          "case",
+          ["all",
+            ["==", ["get", "footway"], ["literal", "crossing"]],
+            ["==", ["get", "curbramps"], 0],
+            ["literal", avoid_curbs === 1],
+          ],
+          "#000000",
+          ["case",
+            ["all",
+              ["==", ["get", "footway"], ["literal", "sidewalk"]],
+              ["any",
+                [">", ["abs", ["get", "incline"]], ["literal", uphill]],
+                ["<", ["get", "width"], ["literal", width]],
+              ],
+            ],
+            "#000000",
+            "#FCA635",
+          ],
+        ],
+        "line-opacity": 1,
+        "line-width": PATH_WIDTH_EXPRESSION
+      }}
+      before="bridge-street"
+    />
+  </>
+);
+            // ["all",  ["to-boolean", ["get", "curbramps"]], ["!", ["to-boolean", ["literal", avoid_curbs]]]],
 
 export default SidewalksLayer;

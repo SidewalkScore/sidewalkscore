@@ -7,7 +7,7 @@ services:
     volumes:
       - ./config/tippecanoe/build_tiles.sh:/build_tiles.sh:ro
       - ./config/tippecanoe/pedestrian-tilejson.json:/home/tippecanoe/pedestrian.json:ro
-      - ./data/sidewalkscore/pedestrian/layers/transportation.geojson:/home/tippecanoe/input/transportation.geojson:ro
+      - ./data/transportation.geojson:/home/tippecanoe/input/transportation.geojson:ro
       - ./build/tiles:/home/tippecanoe/output:rw
 
   tippecanoe_sidewalkscore:

@@ -12,9 +12,9 @@ const pixelsPerMeter = (zoom) => {
   return worldSize / rest;
 };
 
-export default (width) => ([
+export default (width, scaleFactor=1) => ([
   "interpolate",
   ["exponential", 2],
   ["zoom"],
-  ...ZOOMS.map(z => [z, width * pixelsPerMeter(z)]).reduce((a, b) => a.concat(b))
+  ...ZOOMS.map(z => [z, scaleFactor * width * pixelsPerMeter(z)]).reduce((a, b) => a.concat(b))
 ]);
