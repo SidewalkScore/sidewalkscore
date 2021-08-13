@@ -4,6 +4,7 @@ services:
   unweaver:
     build: https://github.com/nbolten/unweaver.git
     command: poetry run unweaver serve /data -h 0.0.0.0 -p 5656
+    restart: unless-stopped
     ports:
       - 5656:5656
     environment:
@@ -14,6 +15,7 @@ services:
   unweaver_streets:
     build: https://github.com/nbolten/unweaver.git
     command: poetry run unweaver serve /data -h 0.0.0.0 -p 5657
+    restart: unless-stopped
     ports:
       - 5657:5657
     environment:
@@ -23,6 +25,7 @@ services:
 
   caddy:
     image: abiosoft/caddy:0.11.5-no-stats
+    restart: unless-stopped
     ports:
         - 2015:2015
     environment:
