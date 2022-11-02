@@ -22,7 +22,7 @@ def sidewalkscore_batch(
     # Update streets graph with sidewalkscores
     # TODO: this is where to parallelize
     sidewalkscores_ebunch = []
-    for i, (u, v, street) in enumerate(networks.street.G.edges(data=True)):
+    for i, (u, v, street) in enumerate(networks.street.G.iter_edges()):
         sidewalkscores = sidewalkscore(networks, street)
         sidewalkscores_ebunch.append((u, v, sidewalkscores))
 

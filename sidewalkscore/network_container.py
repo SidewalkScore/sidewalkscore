@@ -1,4 +1,7 @@
+from pathlib import Path
+
 import unweaver
+from unweaver.graphs import DiGraphGPKG
 
 
 class RoutingContext:
@@ -21,10 +24,11 @@ class NetworkContainer:
     @staticmethod
     def from_directories(pedestrian_directory, street_directory):
         def from_directory(directory):
-            G = unweaver.graph.get_graph(directory)
-            G = G.to_in_memory()
+            graph_path = Path(directory, "graph.gpkg")
+            G = DiGraphGPKG(str(graph_path))
+            G_mem = G.to_in_memory()
             profiles = unweaver.parsers.parse_profiles(directory)
-            return G, profiles
+            return G_mem, profiles
 
         G_ped, profiles_ped = from_directory(pedestrian_directory)
         G_street, profiles_street = from_directory(street_directory)
