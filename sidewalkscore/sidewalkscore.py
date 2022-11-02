@@ -1,7 +1,7 @@
 import copy
 
-import shapely
-from shapely.geometry import shape
+import shapely  # type: ignore
+from shapely.geometry import shape  # type: ignore
 
 import unweaver
 
@@ -15,13 +15,15 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
     # all-by-all comparisons between ped and street? Need a strategy for
     # aligning pedestrian profiles with street profiles. For now, assumes only
     # a single street profile
-    G_ped = networks["pedestrian"]["G"]
-    street_profile = networks["street"]["profiles"][0]
+    geom_key_st = networks.street.G.network.edges.geom_column
+    geom_key_ped = networks.pedestrian.G.network.edges.geom_column
+    G_ped = networks.pedestrian.G
+    street_profile = networks.street.profiles[0]
     # TODO: use precalculated weights
     street_cost_function = street_profile["cost_function"]()
 
     # Get the midpoint
-    geometry_st = shape(street_edge["_geometry"])
+    geometry_st = shape(street_edge[geom_key_st])
     # TODO: ensure interpolation happens geodetically - currently introduces
     # errors as it's done in wgs84
     midpoint = geometry_st.interpolate(interpolate, normalized=True)
@@ -34,12 +36,10 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
         sidewalk_ids.append(street_edge["pkey_right"])
 
     if not sidewalk_ids:
-        return {
-            profile["id"]: 0 for profile in networks["pedestrian"]["profiles"]
-        }
+        return {profile["id"]: 0 for profile in networks.pedestrian.profiles}
 
     street_candidates = unweaver.graph.waypoint_candidates(
-        networks["street"]["G"],
+        networks.street.G,
         midpoint.x,
         midpoint.y,
         4,
@@ -69,15 +69,15 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
 
     # Find reachable paths for all
     sw_distances = {
-        profile["id"]: [] for profile in networks["pedestrian"]["profiles"]
+        profile["id"]: [] for profile in networks.pedestrian.profiles
     }
     sw_candidates_list = []
     for sidewalk in sidewalks:
-        sw_geometry = shape(sidewalk["_geometry"])
+        sw_geometry = shape(sidewalk[geom_key_ped])
         sw_midpoint = sw_geometry.interpolate(sw_geometry.project(midpoint))
         sw_candidates = list(
             unweaver.graph.waypoint_candidates(
-                networks["pedestrian"]["G"],
+                networks.pedestrian.G,
                 sw_midpoint.x,
                 sw_midpoint.y,
                 1,
@@ -87,7 +87,7 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
         )
         sw_candidates_list.append(sw_candidates)
 
-    for profile in networks["pedestrian"]["profiles"]:
+    for profile in networks.pedestrian.profiles:
         profile_id = profile["id"]
         # TODO: calculate dynamic weights if static is not available
         if "static" in profile:
@@ -110,7 +110,7 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
                 sw_distances[profile_id].append(0)
             else:
                 G_aug = unweaver.augmented.prepare_augmented(
-                    networks["pedestrian"]["G"], sw_candidate
+                    networks.pedestrian.G, sw_candidate
                 )
                 sw_nodes, sw_edges = unweaver.algorithms.reachable.reachable(
                     G_aug, sw_candidate, cost_function, max_cost=400
@@ -131,7 +131,7 @@ def sidewalkscore(networks, street_edge, interpolate=0.5):
     }
 
     G_aug = unweaver.augmented.prepare_augmented(
-        networks["street"]["G"], street_candidate
+        networks.street.G, street_candidate
     )
     st_nodes, st_edges = unweaver.algorithms.reachable.reachable(
         G_aug, street_candidate, street_cost_function, max_cost=400

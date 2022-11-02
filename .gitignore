@@ -1,6 +1,7 @@
-# bytecode
+# Python
 *.pyc
 __pycache__
+*.egg-info
 
 # Virtual environment
 venv

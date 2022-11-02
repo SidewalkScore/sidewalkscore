@@ -9,17 +9,18 @@ license = "Apache-2.0"
 sidewalkscore = "sidewalkscore:cli.sidewalkscore"
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.8"
 shapely = "^1.6"
-entwiner = {git = "https://github.com/nbolten/entwiner.git", rev="f0f32d0"}
-unweaver = {git = "https://github.com/nbolten/unweaver.git", rev="f9f4bed"}
+unweaver = {git = "https://github.com/nbolten/unweaver.git", rev="66352c1"}
 pre-commit = "^1.20.0"
+click = "^8.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
 black = "18.9b0"
 pre-commit = "^1.20"
 dephell = "^0.8.3"
+mypy = "^0.982"
 
 [tool.black]
 line-length = 79
@@ -30,5 +31,5 @@ exclude = """
 """
 
 [build-system]
-requires = ["poetry>=0.12"]
+requires = ["poetry>=1.1.12"]
 build-backend = "poetry.masonry.api"
