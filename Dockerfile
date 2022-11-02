@@ -6,15 +6,9 @@ RUN apt-get update && \
       fiona \
       libsqlite3-mod-spatialite
 
-RUN pip install poetry
-
-RUN mkdir -p /install
+COPY . /install
 WORKDIR /install
 
-COPY ./sidewalkscore /install/sidewalkscore
-COPY ./pyproject.toml /install/pyproject.toml
-COPY ./poetry.lock /install/poetry.lock
+RUN pip install .
 
-RUN poetry install --no-dev
-
-CMD ["poetry", "run", "sidewalkscore"]
+CMD ["sidewalkscore"]
