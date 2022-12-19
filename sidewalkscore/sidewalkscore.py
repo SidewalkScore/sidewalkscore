@@ -10,33 +10,22 @@ if shapely.speedups.available:
     shapely.speedups.enable()
 
 
-def sidewalkscore(networks, street_edge, interpolate=0.5):
+def sidewalkscore(G, street_edge, interpolate=0.5):
     # FIXME: standardize expectation over profile combinations. Is it
     # all-by-all comparisons between ped and street? Need a strategy for
     # aligning pedestrian profiles with street profiles. For now, assumes only
     # a single street profile
-    geom_key_st = networks.street.G.network.edges.geom_column
-    geom_key_ped = networks.pedestrian.G.network.edges.geom_column
-    G_ped = networks.pedestrian.G
-    street_profile = networks.street.profiles[0]
-    # TODO: use precalculated weights
-    street_cost_function = street_profile["cost_function"]()
+    geom_key = G.network.edges.geom_column
 
     # Get the midpoint
-    geometry_st = shape(street_edge[geom_key_st])
+    # FIXME: we're calculating more than 1 midpoint per ontological "street",
+    # as streets are broken up in OpenSidewalks to connect them to pedestrian
+    # edges. We should revisit this part of the function and replace it with
+    # a new streets-only graph interpretation.
+    geometry_st = shape(street_edge[geom_key])
     # TODO: ensure interpolation happens geodetically - currently introduces
     # errors as it's done in wgs84
     midpoint = geometry_st.interpolate(interpolate, normalized=True)
-    # Get the associated sidewalks, if applicable
-    sidewalk_ids = []
-    # FIXME: Why would sw_left exist but not pkey_left?
-    if "sw_left" in street_edge and street_edge["pkey_left"] is not None:
-        sidewalk_ids.append(street_edge["pkey_left"])
-    if "sw_right" in street_edge and street_edge["pkey_right"] is not None:
-        sidewalk_ids.append(street_edge["pkey_right"])
-
-    if not sidewalk_ids:
-        return {profile["id"]: 0 for profile in networks.pedestrian.profiles}
 
     street_candidates = unweaver.graph.waypoint_candidates(
         networks.street.G,

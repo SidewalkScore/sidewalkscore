@@ -1,16 +1,29 @@
-import os
+from unweaver.build import build_graph as unweaver_build_graph
+from unweaver.parsers import parse_profiles
 
-from unweaver.build import build_graph
+from .exceptions import (
+    MisconfiguredStreetProfileError,
+    MissingStreetProfileError,
+)
 
 
-def build_graphs(path, changes_sign=None):
+def build_graph(path, changes_sign=None, counter=None):
     if changes_sign is None:
         changes_sign = []
 
-    ped_path = os.path.join(path, "pedestrian")
-    street_path = os.path.join(path, "street")
+    has_street_profile = False
+    profiles = parse_profiles(path)
+    for profile in profiles:
+        if profile["id"] == "street":
+            if "precalculate" not in profile or not profile["precalculate"]:
+                raise MisconfiguredStreetProfileError(
+                    "Street profile must have precalculated: true"
+                )
+            has_street_profile = True
+            break
+    if not has_street_profile:
+        raise MissingStreetProfileError("Missing profile with id 'street'")
 
-    G_ped = build_graph(ped_path, changes_sign=changes_sign)
-    G_st = build_graph(street_path, changes_sign=changes_sign)
+    G = unweaver_build_graph(path, changes_sign=changes_sign, counter=counter)
 
-    return G_ped, G_st
+    return G
